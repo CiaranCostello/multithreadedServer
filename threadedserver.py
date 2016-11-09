@@ -1,6 +1,8 @@
 import socket
 import threading
 
+std_ID = 13321463
+
 class Server(object):
 
 	max_workers = 16
@@ -32,15 +34,19 @@ class Server(object):
 
 	def Worker(self):
 		while len(tasks) > 0:
-			(client, address) = tasks.pop(0)
+			(client, (host, port)) = tasks.pop(0)
 			size = 1024
 	        while True:
 	            try:
 	                data = client.recv(size)
 	                if data:
+	                	data = data.decode("utf-8")
 	                    # Set the response to echo back the recieved data 
-	                    response = data
-	                    client.send(response)
+	                    if data == "HELO text\n":
+	                    	response = "HELO text\nIP:{0}\nPort:{1}\nStudentID:{2}\n".format(host, port, std_ID)
+	                    else:
+	                    	response = data
+	                    client.send(response.encode("utf-8"))
 	                else:
 	                    raise error('Client disconnected')
 	            except:
