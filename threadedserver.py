@@ -47,7 +47,7 @@ class Server(object):
 				try:
 					data = client.recv(size)
 					data = data.decode("utf-8")
-					if data is not "KILL_SERVICE\n":
+					if data:
 						print("Received message: {0}".format(data))
 						# Set the response to echo back the recieved data
 						if data[0:5] == "HELO " and data[-1] == "\n":
@@ -64,7 +64,6 @@ class Server(object):
 						raise error('Client disconnected')
 				except:
 					client.close()
-					self.Stop()
 					print("Got to break")
 					break
 		print("Worker dying")
@@ -74,7 +73,6 @@ class Server(object):
 		print("Running set to false")
 		socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((self.host, self.port))
 		self.socket.close()
-		sys.exit(1)
 
 def clargs():
 	parser = argparse.ArgumentParser(description='TCP thread pool server.')
