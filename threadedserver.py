@@ -20,10 +20,12 @@ class Server(object):
 		self.no_of_workers = 0
 		self.lock = threading.Lock()
 		self.ip = ip
+		self.running = True
 
 	def listen(self):
 		self.socket.listen(5)
-		while True:
+		while self.running:
+			print("Waiting for connections")
 			client, address = self.socket.accept()
 			print("Received connection from {0}".format(address))
 			#add connection to task list
@@ -33,7 +35,7 @@ class Server(object):
 			if(self.no_of_workers < self.max_workers and len(self.tasks) >= 0):
 				print("Creating worker")
 				self.no_of_workers +=1
-				threading.Thread(target = self.Worker).start()
+				threading.Thread(target = self.Worker, daemon = True).start()
 			self.lock.release()
 
 	def Worker(self):
@@ -44,23 +46,35 @@ class Server(object):
 			while True:
 				try:
 					data = client.recv(size)
-					if data:
-						data = data.decode("utf-8")
+					data = data.decode("utf-8")
+					if data is not "KILL_SERVICE\n":
 						print("Received message: {0}".format(data))
 						# Set the response to echo back the recieved data
 						if data[0:5] == "HELO " and data[-1] == "\n":
 							print("Adding student id.")
 							response = "{3}IP:{0}\nPort:{1}\nStudentID:{2}\n".format(self.ip, self.port, std_ID, data)
+							client.send(response.encode("utf-8"))
+						elif data == "KILL_SERVICE\n":
+							print("Calling Stop()")
+							self.Stop()
 						else:
-							print("Simply echoing data.")
-							response = data
-						client.send(response.encode("utf-8"))
-						print("Send response")
+							print("Handling other package.")
+						print("Handled packet")
 					else:
 						raise error('Client disconnected')
 				except:
 					client.close()
-				return False
+					self.Stop()
+					print("Got to break")
+					break
+		print("Worker dying")
+
+	def Stop(self):
+		self.running = False
+		print("Running set to false")
+		socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((self.host, self.port))
+		self.socket.close()
+		sys.exit(1)
 
 def clargs():
 	parser = argparse.ArgumentParser(description='TCP thread pool server.')
